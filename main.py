@@ -1,11 +1,9 @@
 import os
 import verifications
 import discord
-from dotenv import load_dotenv
 import sqlite3
 import asyncio
 from riotwatcher import LolWatcher, ApiError
-import schedule
 import datetime
 import time
 from discord.ext import tasks, commands
