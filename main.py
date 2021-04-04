@@ -14,7 +14,7 @@ import threading
 client = discord.Client()
 db = sqlite3.connect('database.db', check_same_thread=False)
 splitMessageCommands = ["$insert", "$update"]
-watcher = LolWatcher("TOKEN")
+watcher = LolWatcher(process.env.RIOT_API_TOKEN)
 myRegion = "br1"
 nameList = ['Lapf', 'Tigersaber', 'bliip', 'Jhizz', 'Vlyper']
 
@@ -75,6 +75,7 @@ class database:
         dbCursor.execute(query, (message[0],))
         queryResult = dbCursor.fetchall()
         resultText = f"**DATE: {message[0]}** ```autohotkey\n\n"
+        print(len(identifier))
         if(len(identifier) == 0):
             if(len(queryResult) <= 1):
                 dbCursor.close()
@@ -158,6 +159,7 @@ async def on_message(message):
 def InsertNewRecords():
     threading.Timer(1, InsertNewRecords).start()
     now = datetime.datetime.now()
+    print(now.strftime("%H:%M:%S"))
     if(now.strftime("%H:%M:%S") == "23:00:00"):
         leagueapi.InsertData(leagueapi.getSummonerData())
 
@@ -165,4 +167,4 @@ def InsertNewRecords():
 InsertNewRecords()
 
 
-client.run("TOKEN")
+client.run(process.env.DISCORD_TOKEN)
