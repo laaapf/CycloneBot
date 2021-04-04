@@ -12,7 +12,7 @@ import threading
 client = discord.Client()
 db = sqlite3.connect('database.db', check_same_thread=False)
 splitMessageCommands = ["$insert", "$update"]
-watcher = LolWatcher(process.env.RIOT_API_TOKEN)
+watcher = LolWatcher(os.environ.get('RIOT_API_TOKEN'))
 myRegion = "br1"
 nameList = ['Lapf', 'Tigersaber', 'bliip', 'Jhizz', 'Vlyper']
 
@@ -165,4 +165,4 @@ def InsertNewRecords():
 InsertNewRecords()
 
 
-client.run(process.env.DISCORD_TOKEN)
+client.run(os.environ.get('DISCORD_TOKEN'))
