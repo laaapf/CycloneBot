@@ -123,10 +123,13 @@ class leagueapi:
 
 @client.event
 async def on_ready():
+    timenow = datetime.datetime.now().strftime("%H:%M:%S")
+    datenow = (datetime.datetime.now() -
+               datetime.timedelta(1)).strftime('%d/%m/%Y')
     user = await client.fetch_user("162974176544686081")
     try:
         database.InsertNewRecords()
-        await discord.DMChannel.send(user, "Everything working fine!")
+        await discord.DMChannel.send(user, f"Everything working fine! DATE: {datenow} | TIME: {timenow}")
     except:
         await discord.DMChannel.send(user, "Bot shutting down!")
         quit()
