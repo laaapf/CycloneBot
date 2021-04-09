@@ -31,15 +31,6 @@ class database:
         print(now.strftime("%H:%M:%S"))
         database.InsertionChecktime(now)
 
-    async def Connect():
-        global user
-        user = await client.fetch_user("162974176544686081")
-        try:
-            await discord.DMChannel.send(user, "Database connected")
-        except:
-            await discord.DMChannel.send(user, "Database didn't connect | Bot turning off")
-            quit()
-
     def SplitMessage(command, message):
         if(message[0] in verifications.splitMessageCommands):
             splittedMessage = message.split()
@@ -133,11 +124,10 @@ class leagueapi:
 async def on_ready():
     user = await client.fetch_user("162974176544686081")
     try:
-        await database.Connect()
         database.InsertNewRecords()
-        await discord.DMChannel.send(user, "Database connected!")
+        await discord.DMChannel.send(user, "Everything working fine!")
     except:
-        await discord.DMChannel.send(user, "Database didn't connect!")
+        await discord.DMChannel.send(user, "Bot shutting down!")
         quit()
 
     # database.InsertNewRecords()
