@@ -137,6 +137,9 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    timenow = datetime.datetime.now().strftime("%H:%M:%S")
+    datenow = (datetime.datetime.now() -
+               datetime.timedelta(1)).strftime('%d/%m/%Y')
     receivedMessage = message.content
     print(message.content)
     if message.author == client.user:
@@ -173,14 +176,11 @@ async def on_message(message):
             await message.channel.send('ladrao')
 
     if (receivedMessage == '$last_update'):
-        datenow = (datetime.datetime.now() -
-                   datetime.timedelta(1)).strftime('%d/%m/%Y')
-
         await message.channel.send(database.SelectData([datenow]))
 
     # all bot commands
     if(receivedMessage == '$time'):
-        await message.channel.send(datetime.datetime.now().strftime("%H:%M:%S"))
+        await message.channel.send(timenow)
 
     if (receivedMessage == '$commands'):
         print(receivedMessage)
