@@ -18,12 +18,12 @@ watcher = LolWatcher(os.environ.get('RIOT_API_TOKEN'))
 class database:
 
     def InsertionChecktime(nowtime):
-        if(nowtime.strftime("%H:%M:%S") == "03:25:00"):
-            try:
-                leagueapi.InsertData(leagueapi.getSummonerData())
-                print("Insertion completed")
-            except:
-                print("Insertion failed")
+        if(nowtime.strftime("%H:%M:%S") == "03:00:00"):
+            # try:
+            leagueapi.InsertData(leagueapi.getSummonerData())
+            print("Insertion completed")
+            # except:
+            #     print("Insertion failed")
 
     def InsertNewRecords():
         threading.Timer(1, database.InsertNewRecords).start()
@@ -116,7 +116,8 @@ class leagueapi:
     def InsertData(data):
         if(database.AdjustmentsForSoloqueueInsertion()):
             for counter in range(5):
-                database.InsertDataIntoSoloqueue((data[counter]['summonerName'], time.strftime("%d/%m/%Y") - datetime.timedelta(1), data[counter]['rank'],
+                database.InsertDataIntoSoloqueue((data[counter]['summonerName'], (datetime.datetime.now() -
+                                                                                  datetime.timedelta(1)).strftime('%d/%m/%Y'), data[counter]['rank'],
                                                   data[counter]['tier'], int(data[counter]['leaguePoints'])))
 
 
