@@ -18,7 +18,7 @@ watcher = LolWatcher(os.environ.get('RIOT_API_TOKEN'))
 class database:
 
     def InsertionChecktime(nowtime):
-        if(nowtime.strftime("%H:%M:%S") == "03:02:00"):
+        if(nowtime.strftime("%H:%M:%S") == "03:22:00"):
             try:
                 leagueapi.InsertData(leagueapi.getSummonerData())
                 print("Insertion completed")
