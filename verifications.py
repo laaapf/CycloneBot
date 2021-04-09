@@ -4,6 +4,9 @@ nameList = ['Lapf', 'Tigersaber', 'bliip', 'Jhizz', 'Vlyper']
 eloList = ['iron', 'bronze', 'silver', 'gold', 'platinum',
            'diamond', 'master', 'grandmaster', 'challenger']
 divisionNumber = ["1", "2", "3", "4"]
+splitMessageCommands = ["$insert", "$update"]
+pirloList = ['Delta Krow', 'Paulo', 'Pirlo',
+             'Perlo', 'Delta Crow', 'DeltaCrow']
 
 
 def DateVerify(date):

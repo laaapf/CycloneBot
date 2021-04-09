@@ -1,58 +1,81 @@
 import os
 import verifications
 import discord
-import sqlite3
-import asyncio
 from riotwatcher import LolWatcher, ApiError
 import datetime
 import time
 from discord.ext import tasks, commands
 import threading
+import psycopg2
+from psycopg2 import Error
 
-client = discord.Client()
-db = sqlite3.connect('database.db', check_same_thread=False)
-splitMessageCommands = ["$insert", "$update"]
-watcher = LolWatcher(os.environ.get('RIOT_API_TOKEN'))
+connection = psycopg2.connect(os.environ.get('DATABASE_URL'))
 myRegion = "br1"
-nameList = ['Lapf', 'Tigersaber', 'bliip', 'Jhizz', 'Vlyper']
+client = discord.Client()
+watcher = LolWatcher(os.environ.get('RIOT_API_TOKEN'))
 
 
 class database:
+
+    def InsertionChecktime(nowtime):
+        if(nowtime.strftime("%H:%M:%S") == "03:02:00"):
+            try:
+                leagueapi.InsertData(leagueapi.getSummonerData())
+                print("Insertion completed")
+            except:
+                print("Insertion failed")
+
+    def InsertNewRecords():
+        threading.Timer(1, database.InsertNewRecords).start()
+        now = datetime.datetime.now()
+        print(now.strftime("%H:%M:%S"))
+        database.InsertionChecktime(now)
+
+    async def Connect():
+        global user
+        user = await client.fetch_user("162974176544686081")
+        try:
+            await discord.DMChannel.send(user, "Database connected")
+        except:
+            await discord.DMChannel.send(user, "Database didn't connect | Bot turning off")
+            quit()
+
     def SplitMessage(command, message):
-        if(message[0] in splitMessageCommands):
+        if(message[0] in verifications.splitMessageCommands):
             splittedMessage = message.split()
             splittedMessage.remove(splittedMessage[0])
-            splittedMessage[2] = int(splittedMessage[2])
             splittedMessage[4] = int(splittedMessage[4])
         else:
             splittedMessage = message.split()
             splittedMessage.remove(splittedMessage[0])
         return splittedMessage
 
-    def CloseCon(cursor, con):
-        db.commit()
-        cursor.close()
-
-    def InsertData(data):
-        yesterdayDate = (datetime.datetime.now() - datetime.timedelta(1)
+    def AdjustmentsForSoloqueueInsertion():
+        yesterdayDate = (datetime.datetime.now() - datetime.timedelta(2)
                          ).strftime('%d/%m/%Y')
         yesterdayData = database.SelectData([yesterdayDate], 1)
-        deleteTempData = """DELETE FROM TempTable"""
-        yesterdayQuery = """INSERT INTO TempTable (name,elo,division,date,current_lp) VALUES (?,?,?,?,?)"""
-        dbCursor = db.cursor()
-        query = """INSERT INTO SoloqueueData (name,elo,division,date,current_lp) VALUES (?,?,?,?,?)"""
+        deleteTempData = """DELETE FROM TempTable;"""
+        cursor = connection.cursor()
         try:
-            dbCursor.execute(deleteTempData,)
-            database.CloseCon(dbCursor, db)
-            dbCursor = db.cursor()
-            dbCursor.executemany(yesterdayQuery, yesterdayData)
-            database.CloseCon(dbCursor, db)
-            dbCursor = db.cursor()
-            dbCursor.execute(query, data)
-        except sqlite3.IntegrityError:
-            dbCursor.close()
-        db.commit()
-        dbCursor.close()
+            cursor.execute(deleteTempData)
+            connection.commit()
+            for row in yesterdayData:
+                yesterdayQuery = f'''INSERT INTO TempTable (name,date,division,elo,current_lp) VALUES {row};'''
+                cursor.execute(yesterdayQuery)
+                connection.commit()
+            cursor.close()
+            return True
+        except:
+            cursor.close()
+            return False
+
+    def InsertDataIntoSoloqueue(data):
+        cursor = connection.cursor()
+        print(data)
+        query = f'''INSERT INTO SoloqueueData (name,date,division,elo,current_lp) VALUES {data};'''
+        cursor.execute(query)
+        connection.commit()
+        cursor.close()
         print("Data inserted succesfully!")
 
     # def UpdateData(message):
@@ -68,31 +91,30 @@ class database:
     #     return("Updated!")
 
     def SelectData(message, *identifier):
-        dbCursor = db.cursor()
-        query = """SELECT * FROM SoloqueueData WHERE date = ?"""
-        dbCursor.execute(query, (message[0],))
-        queryResult = dbCursor.fetchall()
+        cursor = connection.cursor()
+        query = f'''SELECT * FROM SoloqueueData WHERE date LIKE '{message[0]}' '''
+        cursor.execute(query)
+        queryResult = cursor.fetchall()
         resultText = f"**DATE: {message[0]}** ```autohotkey\n\n"
-        print(len(identifier))
         if(len(identifier) == 0):
             if(len(queryResult) <= 1):
-                dbCursor.close()
+                cursor.close()
                 return("No records found!")
             for row in queryResult:
                 resultText += row[0] + " | " + row[3] + " | " + \
                     str(row[2]) + " | " + str(row[4]) + " LP \n"
             resultText += "```"
-            dbCursor.close()
+            cursor.close()
             return resultText
         else:
-            dbCursor.close()
+            cursor.close()
             return queryResult
 
 
 class leagueapi:
     def getSummonerData():
         summonerListStats = []
-        for nickname in nameList:
+        for nickname in verifications.nameList:
             summoner = watcher.summoner.by_name(myRegion, nickname)
             stats = watcher.league.by_summoner(myRegion, summoner['id'])
             for information in stats:
@@ -101,13 +123,24 @@ class leagueapi:
         return summonerListStats
 
     def InsertData(data):
-        for counter in range(5):
-            database.InsertData([data[counter]['summonerName'], data[counter]['tier'],
-                                 data[counter]['rank'], time.strftime("%d/%m/%Y"), int(data[counter]['leaguePoints'])])
+        if(database.AdjustmentsForSoloqueueInsertion()):
+            for counter in range(5):
+                database.InsertDataIntoSoloqueue((data[counter]['summonerName'], time.strftime("%d/%m/%Y") - datetime.timedelta(1), data[counter]['rank'],
+                                                  data[counter]['tier'], int(data[counter]['leaguePoints'])))
 
 
 @client.event
 async def on_ready():
+    user = await client.fetch_user("162974176544686081")
+    try:
+        await database.Connect()
+        database.InsertNewRecords()
+        await discord.DMChannel.send(user, "Database connected!")
+    except:
+        await discord.DMChannel.send(user, "Database didn't connect!")
+        quit()
+
+    # database.InsertNewRecords()
     print('We have logged in as {0.user}'.format(client))
 
 
@@ -120,7 +153,7 @@ async def on_message(message):
 
     if receivedMessage.startswith('$insert'):
         if(verifications.VerifyMessage(receivedMessage)):
-            database.InsertData(database.SplitMessage(
+            database.InsertDataIntoSoloqueue(database.SplitMessage(
                 "$insert", receivedMessage))
         else:
             await message.channel.send("Invalid parameters!")
@@ -144,25 +177,23 @@ async def on_message(message):
         else:
             await message.channel.send("Invalid parameters!")
 
-    if (receivedMessage == '$today'):
-        yesterdayDate = (datetime.datetime.now() - datetime.timedelta(2)
-                         ).strftime('%d/%m/%Y')
-        await message.channel.send(database.SelectData([time.strftime("%d/%m/%Y")]))
+    for word in verifications.pirloList:
+        if(word.lower() in receivedMessage.lower()):
+            await message.channel.send('ladrao')
+
+    if (receivedMessage == '$last_update'):
+        datenow = (datetime.datetime.now() -
+                   datetime.timedelta(1)).strftime('%d/%m/%Y')
+
+        await message.channel.send(database.SelectData([datenow]))
 
     # all bot commands
+    if(receivedMessage == '$time'):
+        await message.channel.send(datetime.datetime.now().strftime("%H:%M:%S"))
+
     if (receivedMessage == '$commands'):
+        print(receivedMessage)
         await message.channel.send("----------Commands----------\n$select <date> - EX: $select 04/03/2021\n$today - updated records for today")
-
-
-def InsertNewRecords():
-    threading.Timer(1, InsertNewRecords).start()
-    now = datetime.datetime.now()
-    print(now.strftime("%H:%M:%S"))
-    if(now.strftime("%H:%M:%S") == "23:00:00"):
-        leagueapi.InsertData(leagueapi.getSummonerData())
-
-
-InsertNewRecords()
 
 
 client.run(os.environ.get('DISCORD_TOKEN'))
