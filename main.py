@@ -185,6 +185,10 @@ async def on_message(message):
     if(receivedMessage == '$time'):
         await message.channel.send(timenow)
 
+    if(receivedMessage == '$manual_insertion'):
+        leagueapi.InsertData(leagueapi.getSummonerData())
+        await message.channel.send('Insertion completed')
+
     if (receivedMessage == '$commands'):
         print(receivedMessage)
         await message.channel.send("----------Commands----------\n$select <date> - EX: $select 04/03/2021\n$today - updated records for today")
